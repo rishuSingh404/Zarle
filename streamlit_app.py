@@ -22,23 +22,6 @@ st.set_page_config(
 )
 
 # ─── Global CSS ─────────────────────────────────────────────────────────
-st.markdown("""
-<style>
-    .stButton > button {
-        background-color: #9C27B0;
-        color: white;
-        font-weight: 600;
-        border-radius: 8px;
-        padding: 0.6em 1.2em;
-        transition: all 0.3s ease;
-    }
-    .stButton > button:hover {
-        background-color: #BA68C8;
-        transform: scale(1.03);
-        cursor: pointer;
-    }
-</style>
-""", unsafe_allow_html=True)
 
 st.markdown("""
     <style>
