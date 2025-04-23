@@ -113,12 +113,16 @@ with st.sidebar:
         default_index=0,
         orientation="vertical",
         styles={
-            "container": {"padding": "0", "background-color": "#1F1F1F"},
-            "icon": {"font-size": "20px", "color": "#00BFA6"},
-            "nav-link": {"font-size": "16px", "color": "#EEE", "text-align": "left"},
-            "nav-link-selected": {"background-color": "#00BFA6", "color": "#121212"},
-        }
-    )
+        "container": {"padding": "0", "background-color": "#1F1F1F"},
+        "icon": {"font-size": "20px", "color": "#9C27B0"},  # purple icon
+        "nav-link": {"font-size": "16px", "color": "#ECECEC", "text-align": "left"},
+        "nav-link-selected": {
+            "background-color": "#9C27B0",  # purple highlight
+            "color": "#FFFFFF",
+            "font-weight": "bold"
+        },
+    }
+)
 
 # ─── Helpers ─────────────────────────────────────────────────────────────
 def _save_temp(uploaded, suffix):
