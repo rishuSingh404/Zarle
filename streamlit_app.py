@@ -203,7 +203,7 @@ elif selected == "Step 3":
             if 'Detailed Explanation' not in df.columns:
                 df['Detailed Explanation'] = ''
             if 'Flag' not in df.columns:
-                df()['Flag'] = ''
+                df['Flag'] = ''
 
 
             for i, row in df.iterrows():
