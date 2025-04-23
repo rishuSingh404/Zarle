@@ -4,16 +4,21 @@ import tempfile
 import os
 from datetime import datetime
 import openai
+from streamlit_option_menu import option_menu
 
+# Processing modules
 from step1 import convert_md_to_excel
 from step2 import process_step2
-from step3 import process_step3, build_prompt, parse_response_and_flag
+from step3 import build_prompt, parse_response_and_flag
 from step4 import process_step4
 
-# Load your API key from Streamlit secrets
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+# Load API key
+openai.api_key = st.secrets.get("OPENAI_API_KEY")
+if not openai.api_key:
+    st.error("🔑 OPENAI_API_KEY not found. Add it under Manage App → Secrets.")
+    st.stop()
 
-# ─── Page Config ────────────────────────────────────────────────────────
+# Page configuration
 st.set_page_config(
     page_title="Zarle AI Automator",
     page_icon="🤖",
@@ -21,58 +26,34 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ─── Global CSS ─────────────────────────────────────────────────────────
-st.markdown(
-    """
-    <style>
-      /* Backgrounds & text */
-      .stApp { background-color: #121212; color: #EEE; }
-      /* Sidebar */
-      [data-testid="stSidebar"] {
-        background-color: #1F1F1F;
-        padding-top: 1rem;
-      }
-      /* File uploader container */
-      .stFileUploader > label {
-        width: 100%; 
-        padding: 1rem; 
-        background-color: #212121; 
-        border: 2px dashed #444; 
-        border-radius: 8px;
-        color: #CCC;
-      }
-      /* Option menu icons */
-      .menu-icon {
-        color: #00BFA6 !important;
-      }
-      /* Selected menu item */
-      .nav-link-selected {
-        background-color: #00BFA6 !important;
-        color: #121212 !important;
-      }
-      /* Buttons */
-      .stButton > button {
-        background-color: #00BFA6;
-        color: #121212;
-        font-weight: bold;
-        border-radius: 0.5rem;
-      }
-      .stDownloadButton > button {
-        background-color: #673AB7;
-        color: #FFF;
-      }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+# Dark theme CSS
+st.markdown("""
+<style>
+  .stApp { background-color: #121212; color: #ECECEC; }
+  .sidebar .css-1v3fvcr { background-color: #1F1F1F; }
+  .stButton>button {
+    background-color: #00BFA6; color: #121212;
+    font-weight: bold; border-radius: 8px; padding: 0.6em 1.2em;
+  }
+  .stFileUploader > label {
+    background-color: #242436; border: 2px dashed #444;
+    border-radius: 8px; padding: 1em; color: #ECECEC;
+  }
+  .stDownloadButton>button {
+    background-color: #673AB7; color: #FFFFFF;
+    border-radius: 8px; padding: 0.6em 1.2em;
+  }
+</style>
+""", unsafe_allow_html=True)
 
-# ─── Sidebar Navigation ─────────────────────────────────────────────────
-from streamlit_option_menu import option_menu
-
+# Sidebar navigation
 with st.sidebar:
-    st.image("logo.png", width=120)
-    st.markdown("<h3 style='color: #FFFFFF; margin-bottom: 0.2em;'>Zarle AI Automator</h3>")
-    st.markdown("<p style='color: #EEEEEE; margin-top: 0;'>Fast conversion of Markdown quizzes into AI-verified Excel workbooks.</p>")
+    st.image("logo.png", width=140)
+    st.markdown(
+        "<h3 style='color: #FFFFFF; margin-bottom: 0.2em;'>Zarle AI Automator</h3>"
+        "<p style='color: #DDDDDD; margin-top: 0;'>Fast conversion of Markdown quizzes into AI-verified Excel workbooks.</p>",
+        unsafe_allow_html=True
+    )
     selected = option_menu(
         menu_title=None,
         options=["Step 1", "Step 2", "Step 3", "Step 4"],
@@ -82,119 +63,112 @@ with st.sidebar:
         orientation="vertical",
         styles={
             "container": {"padding": "0", "background-color": "#1F1F1F"},
-            "icon": {"font-size": "20px", "color": "#00BFA6"},
-            "nav-link": {"font-size": "16px", "color": "#EEE", "text-align": "left"},
-            "nav-link-selected": {"background-color": "#00BFA6", "color": "#121212"},
+            "icon": {"color": "#00BFA6", "font-size": "20px"},
+            "nav-link": {"font-size": "16px", "color": "#ECECEC", "text-align": "left"},
+            "nav-link-selected": {"background-color": "#00BFA6", "color": "#121212", "font-weight": "bold"}
         }
     )
 
-# ─── Helpers ─────────────────────────────────────────────────────────────
 def _save_temp(uploaded, suffix):
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
     tmp.write(uploaded.getvalue())
     tmp.close()
     return tmp.name
 
-# ─── Main App Logic ──────────────────────────────────────────────────────
+# Step 1: Markdown to Excel
 if selected == "Step 1":
-    st.header("🧾 Step 1: Markdown → Excel")
-    md = st.file_uploader("Drag & drop your Markdown file (.md)", type="md")
-    if st.button("Convert to Excel ⏩"):
-        if not md:
-            st.warning("Please upload a Markdown file first.")
+    st.header("🧾 Step 1: Convert Markdown to Excel")
+    md_file = st.file_uploader("Drag & drop your .md file", type="md")
+    if st.button("Convert ⏩"):
+        if not md_file:
+            st.warning("Upload a Markdown file.")
         else:
-            path = _save_temp(md, ".md")
-            out = convert_md_to_excel(path)
-            st.success("Conversion successful!")
-            df = pd.read_excel(out)
-            st.dataframe(df, use_container_width=True)
-            with open(out, "rb") as f:
-                st.download_button("⬇️ Download 1.xlsx", f, file_name=os.path.basename(out))
+            path = _save_temp(md_file, ".md")
+            out1 = convert_md_to_excel(path)
+            st.success("✅ 1.xlsx generated!")
+            df1 = pd.read_excel(out1)
+            st.dataframe(df1, use_container_width=True)
+            with open(out1, "rb") as f:
+                st.download_button("Download 1.xlsx", f, file_name=os.path.basename(out1))
 
+# Step 2: Merge Answer & Solutions
 elif selected == "Step 2":
     st.header("🔀 Step 2: Merge Answer Key & Solutions")
-    c1, c2 = st.columns(2)
-    md1 = c1.file_uploader("Upload Answer Key (.md)", type="md")
-    md2 = c2.file_uploader("Upload Solutions (.md)", type="md")
-    x1 = st.file_uploader("Upload 1.xlsx", type="xlsx")
-    if st.button("Merge Files 🔄"):
-        if not (md1 and md2 and x1):
-            st.warning("Please upload both .md files and the 1.xlsx file.")
+    col1, col2 = st.columns(2)
+    md_ans = col1.file_uploader("Answer Key (.md)", type="md")
+    md_sol = col2.file_uploader("Solutions (.md)", type="md")
+    xls1 = st.file_uploader("Upload 1.xlsx", type="xlsx")
+    if st.button("Merge 🔄"):
+        if not (md_ans and md_sol and xls1):
+            st.warning("Upload both .md files and 1.xlsx.")
         else:
-            p1 = _save_temp(md1, ".md")
-            p2 = _save_temp(md2, ".md")
-            p3 = _save_temp(x1, ".xlsx")
-            out = process_step2(p1, p2, p3)
-            st.success("Merge complete!")
-            df = pd.read_excel(out)
-            st.dataframe(df, use_container_width=True)
-            with open(out, "rb") as f:
-                st.download_button("⬇️ Download 2.xlsx", f, file_name=os.path.basename(out))
+            p1 = _save_temp(md_ans, ".md")
+            p2 = _save_temp(md_sol, ".md")
+            p3 = _save_temp(xls1, ".xlsx")
+            out2 = process_step2(p1, p2, p3)
+            st.success("✅ 2.xlsx generated!")
+            df2 = pd.read_excel(out2)
+            st.dataframe(df2, use_container_width=True)
+            with open(out2, "rb") as f:
+                st.download_button("Download 2.xlsx", f, file_name=os.path.basename(out2))
 
+# Step 3: AI Explanations
 elif selected == "Step 3":
-    st.header("🤖 Step 3: AI-Powered Explanations")
-    x2 = st.file_uploader("Upload 2.xlsx", type="xlsx")
-    if st.button("Generate Solutions ⚡️"):
-        if not x2:
-            st.warning("Please upload the 2.xlsx file.")
+    st.header("🤖 Step 3: Generate AI Explanations")
+    xls2 = st.file_uploader("Upload 2.xlsx", type="xlsx")
+    if st.button("Generate 💡"):
+        if not xls2:
+            st.warning("Upload 2.xlsx.")
         else:
-            path = _save_temp(x2, ".xlsx")
-            df = pd.read_excel(path)
-            total = len(df)
+            path2 = _save_temp(xls2, ".xlsx")
+            df3 = pd.read_excel(path2)
+            total = len(df3)
             progress = st.progress(0)
             status = st.empty()
-
-            # Ensure columns exist
-            df.setdefault('Detailed Explanation', '')
-            df.setdefault('Flag', '')
-
-            for i, row in df.iterrows():
-                sys, usr = build_prompt(
-                    row['Serial Number'],
-                    row['Question No'],
-                    row['Question'],
-                    row['Type'],
-                    row['Options'],
-                    row['Answer'],
-                    row['Explanation']
+            df3.setdefault('Detailed Explanation', '')
+            df3.setdefault('Flag', '')
+            for i, row in df3.iterrows():
+                sys_msg, usr_msg = build_prompt(
+                    row['Serial Number'], row['Question No'], row['Question'],
+                    row['Type'], row['Options'], row['Answer'], row['Explanation']
                 )
                 try:
-                    res = openai.ChatCompletion.create(
+                    resp = openai.ChatCompletion.create(
                         model="gpt-3.5-turbo",
-                        messages=[{"role":"system","content":sys}, {"role":"user","content":usr}],
-                        temperature=0.2,
-                        max_tokens=1200
+                        messages=[
+                            {"role": "system", "content": sys_msg},
+                            {"role": "user",   "content": usr_msg}
+                        ],
+                        temperature=0.2, max_tokens=1200
                     )
-                    raw = res.choices[0].message.content
+                    raw = resp.choices[0].message.content
                 except Exception as e:
                     raw = f"Error: {e}\nFlag: Yes"
-
                 expl, flag = parse_response_and_flag(raw)
-                df.at[i, 'Detailed Explanation'] = expl
-                df.at[i, 'Flag'] = flag
-                progress.progress((i+1)/total)
-                status.info(f"Processed {i+1}/{total} rows")
-
+                df3.at[i, 'Detailed Explanation'] = expl
+                df3.at[i, 'Flag'] = flag
+                progress.progress((i + 1) / total)
+                status.info(f"Processed {i+1}/{total}")
             ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-            out = os.path.join(os.path.dirname(path), f"3_{ts}.xlsx")
-            df.to_excel(out, index=False)
+            out3 = os.path.join(os.path.dirname(path2), f"3_{ts}.xlsx")
+            df3.to_excel(out3, index=False)
+            st.success("✅ 3.xlsx generated!")
+            st.dataframe(df3, use_container_width=True)
+            with open(out3, "rb") as f:
+                st.download_button("Download 3.xlsx", f, file_name=os.path.basename(out3))
 
-            st.success("AI explanations generated!")
-            st.dataframe(df, use_container_width=True)
-            with open(out, "rb") as f:
-                st.download_button("⬇️ Download 3.xlsx", f, file_name=os.path.basename(out))
-
-else:  # Step 4
+# Step 4: Final Cleanup
+else:
     st.header("🧼 Step 4: Final Cleanup")
-    x3 = st.file_uploader("Upload 3.xlsx", type="xlsx")
+    xls3 = st.file_uploader("Upload 3.xlsx", type="xlsx")
     if st.button("Finalize ✔️"):
-        if not x3:
-            st.warning("Please upload the 3.xlsx file.")
+        if not xls3:
+            st.warning("Upload 3.xlsx.")
         else:
-            path = _save_temp(x3, ".xlsx")
-            out = process_step4(path)
-            st.success("Final cleanup done! 🎉")
-            df = pd.read_excel(out)
-            st.dataframe(df, use_container_width=True)
-            with open(out, "rb") as f:
-                st.download_button("🏁 Download Final Workbook", f, file_name=os.path.basename(out))
+            path3 = _save_temp(xls3, ".xlsx")
+            out4 = process_step4(path3)
+            st.success("🎉 Final workbook ready!")
+            df4 = pd.read_excel(out4)
+            st.dataframe(df4, use_container_width=True)
+            with open(out4, "rb") as f:
+                st.download_button("Download Final Workbook", f, file_name=os.path.basename(out4))
