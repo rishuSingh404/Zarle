@@ -82,7 +82,8 @@ st.markdown("""
     <style>
         /* Shift sidebar content upward */
         section[data-testid="stSidebar"] > div:first-child {
-            padding-top: 1rem;
+            padding-top: 2rem;
+            padding-bottom: 2rem;
         }
     </style>
 """, unsafe_allow_html=True)
