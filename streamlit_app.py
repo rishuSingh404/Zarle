@@ -79,7 +79,7 @@ st.markdown(
 from streamlit_option_menu import option_menu
 
 with st.sidebar:
-    st.image("logo.png", width=120)
+    st.image("logo.png", width=150)
     st.markdown(
         '''
         <div style="color: white;">
