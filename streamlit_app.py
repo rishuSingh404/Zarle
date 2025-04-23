@@ -201,9 +201,9 @@ elif selected == "Step 3":
             # Ensure columns exist
             # Before looping
             if 'Detailed Explanation' not in df.columns:
-                df.setdefault()['Detailed Explanation'] = ''
+                df['Detailed Explanation'] = ''
             if 'Flag' not in df.columns:
-                df.setdefault()['Flag'] = ''
+                df()['Flag'] = ''
 
 
             for i, row in df.iterrows():
