@@ -22,6 +22,15 @@ st.set_page_config(
 )
 
 # ─── Global CSS ─────────────────────────────────────────────────────────
+st.markdown("""
+    <style>
+        header { visibility: hidden; }
+        .block-container {
+            padding-top: 0rem;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 st.markdown(
     """
     <style>
