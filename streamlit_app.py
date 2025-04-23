@@ -115,7 +115,7 @@ with st.sidebar:
     <style>
         /* Shift sidebar content upward */
         section[data-testid="stSidebar"] > div:first-child {
-            padding-top: 2rem;
+            padding-top: 0rem;
             padding-bottom: 2rem;
         }
     </style>
