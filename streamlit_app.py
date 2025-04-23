@@ -24,6 +24,16 @@ st.set_page_config(
 # ─── Global CSS ─────────────────────────────────────────────────────────
 st.markdown("""
     <style>
+        .stAlert > div {
+            color: white !important;
+            background-color: #1a1a2f !important;
+            border: 1px solid #333;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+    <style>
         button[kind="primary"] {
             background-color: #9C27B0 !important;
             color: white !important;
