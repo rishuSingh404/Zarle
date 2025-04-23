@@ -19,15 +19,19 @@ def clean_latex(text: str) -> str:
 
 def process_step4(input_xlsx: str, output_path: str = None) -> str:
     """
-    Cleans Detailed Explanation in input and writes final Excel.
+    Cleans LaTeX artifacts in Question, Explanation, and Detailed Explanation columns.
     """
     df = pd.read_excel(input_xlsx)
-    if 'Detailed Explanation' in df.columns:
-        df['Detailed Explanation'] = df['Detailed Explanation'].astype(str).apply(clean_latex)
+
+    columns_to_clean = ["Question", "Explanation", "Detailed Explanation"]
+    for col in columns_to_clean:
+        if col in df.columns:
+            df[col] = df[col].astype(str).apply(clean_latex)
 
     if not output_path:
         ts = datetime.now().strftime('%Y%m%d_%H%M%S')
         base = os.path.dirname(input_xlsx)
         output_path = os.path.join(base, f"final_{ts}.xlsx")
+
     df.to_excel(output_path, index=False)
     return output_path
