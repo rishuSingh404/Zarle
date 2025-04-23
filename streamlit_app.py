@@ -71,8 +71,8 @@ from streamlit_option_menu import option_menu
 
 with st.sidebar:
     st.image("logo.png", width=120)
-    st.markdown("### Zarle AI Automator")
-    st.markdown("Fast conversion of Markdown quizzes into AI-verified Excel workbooks.")
+    st.markdown("<h3 style='color: #FFFFFF; margin-bottom: 0.2em;'>Zarle AI Automator</h3>")
+    st.markdown("<p style='color: #EEEEEE; margin-top: 0;'>Fast conversion of Markdown quizzes into AI-verified Excel workbooks.</p>")
     selected = option_menu(
         menu_title=None,
         options=["Step 1", "Step 2", "Step 3", "Step 4"],
