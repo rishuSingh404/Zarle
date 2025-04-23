@@ -199,8 +199,12 @@ elif selected == "Step 3":
             status = st.empty()
 
             # Ensure columns exist
-            df.setdefault('Detailed Explanation', '')
-            df.setdefault('Flag', '')
+            # Before looping
+            if 'Detailed Explanation' not in df.columns:
+                df.setdefault()['Detailed Explanation'] = ''
+            if 'Flag' not in df.columns:
+                df.setdefault()['Flag'] = ''
+
 
             for i, row in df.iterrows():
                 sys, usr = build_prompt(
