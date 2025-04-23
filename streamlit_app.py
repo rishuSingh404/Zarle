@@ -78,6 +78,15 @@ st.markdown(
 # ─── Sidebar Navigation ─────────────────────────────────────────────────
 from streamlit_option_menu import option_menu
 
+st.markdown("""
+    <style>
+        /* Shift sidebar content upward */
+        section[data-testid="stSidebar"] > div:first-child {
+            padding-top: 1rem;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 with st.sidebar:
     st.sidebar.markdown(
     "<div style='text-align: center;'>"
