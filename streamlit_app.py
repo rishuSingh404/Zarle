@@ -103,15 +103,6 @@ st.markdown(
 # ─── Sidebar Navigation ─────────────────────────────────────────────────
 from streamlit_option_menu import option_menu
 
-st.markdown("""
-    <style>
-        /* Shift sidebar content upward */
-        section[data-testid="stSidebar"] > div:first-child {
-            padding-top: 2rem;
-            padding-bottom: 2rem;
-        }
-    </style>
-""", unsafe_allow_html=True)
 
 with st.sidebar:
     st.sidebar.markdown(
@@ -120,6 +111,15 @@ with st.sidebar:
     "</div>",
     unsafe_allow_html=True
 )
+    st.markdown("""
+    <style>
+        /* Shift sidebar content upward */
+        section[data-testid="stSidebar"] > div:first-child {
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
     st.markdown(
         '''
