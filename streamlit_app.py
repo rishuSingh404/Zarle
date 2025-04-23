@@ -114,16 +114,6 @@ with st.sidebar:
     unsafe_allow_html=True
 )
 
-    st.markdown("""
-    <style>
-        /* Shift sidebar content upward */
-        section[data-testid="stSidebar"] > div:first-child {
-            padding-top: 0rem;
-            padding-bottom: 2rem;
-        }
-    </style>
-""", unsafe_allow_html=True)
-
     st.markdown(
         '''
         <div style="color: white;">
