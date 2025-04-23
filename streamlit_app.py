@@ -81,7 +81,7 @@ from streamlit_option_menu import option_menu
 with st.sidebar:
     st.sidebar.markdown(
     "<div style='text-align: center;'>"
-    "<img src='https://raw.githubusercontent.com/rishuSingh404/Zarle/main/logo.png' width='120'/>"
+    "<img src='https://raw.githubusercontent.com/rishuSingh404/Zarle/main/logo.png' width='150'/>"
     "</div>",
     unsafe_allow_html=True
 )
