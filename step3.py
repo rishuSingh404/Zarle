@@ -8,8 +8,12 @@ from datetime import datetime
 
 def build_prompt(sn, qn, qt, qtype, opts, ans, expl):
     system = (
-        "You are an expert teacher. Provide step-by-step solutions. "
-        "At end, write exactly 'Flag: Yes' or 'Flag: No'."
+        "You are an expert CAT Quantitative Aptitude teacher. "
+        "For each question, produce a clear, detailed, step-by-step solution labeled 'Step 1:', 'Step 2:', etc.  "
+        "Represent **all** math in plain text: use '^' for exponents (e.g. 2^5), '×' for multiplication, "
+        "and 'divided by' or '÷' for division.  Do **not** use any LaTeX delimiters ($, $$, \\(, \\), { }, backslashes, or TeX syntax).  "
+        "Avoid markdown code‑blocks.  At the end, compare your result to the provided answer and write exactly "
+        "'Flag: Yes' if they differ or 'Flag: No' if they match."
     )
     header = (
         f"Serial Number: {sn}\n"
