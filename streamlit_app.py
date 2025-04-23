@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import tempfile, os
+from datetime import datetime
 
 # ─── Import your implementations ─────────────────────────────────────
 from step1 import convert_md_to_excel
@@ -112,26 +113,71 @@ elif step == "Step 2: MD+MD+1.xlsx → 2.xlsx":
 elif step == "Step 3: 2.xlsx → 3.xlsx":
     st.header("Step 3: Generate Detailed Explanations")
     x2 = st.file_uploader("Upload 2.xlsx", type="xlsx")
+
     if st.button("Run Step 3"):
         if not x2:
             st.error("Please upload 2.xlsx.")
         else:
             try:
-                st.info("Calling OpenAI…")
+                st.info("Initializing OpenAI calls…")
                 p = _save_temp(x2, ".xlsx")
-                out = process_step3(p, openai_key=st.secrets.get("OPENAI_API_KEY"))
-                st.success("Done!")
-                df = pd.read_excel(out)
-                st.dataframe(df, use_container_width=True)
+                df = pd.read_excel(p)
+
+                total = len(df)
+                progress = st.progress(0)
+                status = st.empty()
+                updated_rows = 0
+
+                from step3 import build_prompt, parse_response_and_flag
+                import openai
+                openai.api_key = st.secrets["OPENAI_API_KEY"]
+
+                # Ensure these columns exist
+                if 'Detailed Explanation' not in df.columns:
+                    df['Detailed Explanation'] = ''
+                if 'Flag' not in df.columns:
+                    df['Flag'] = ''
+
+                for idx, row in df.iterrows():
+                    sys, usr = build_prompt(
+                        row['Serial Number'], row['Question No'], row['Question'],
+                        row['Type'], row['Options'], row['Answer'], row['Explanation']
+                    )
+                    try:
+                        res = openai.ChatCompletion.create(
+                            model='gpt-3.5-turbo',
+                            messages=[{'role':'system','content':sys}, {'role':'user','content':usr}],
+                            temperature=0.2, max_tokens=1200
+                        )
+                        raw = res.choices[0].message.content
+                    except Exception as e:
+                        raw = f"Error: {e}\\nFlag: Yes"
+
+                    expl, flag = parse_response_and_flag(raw)
+                    df.at[idx, 'Detailed Explanation'] = expl
+                    df.at[idx, 'Flag'] = flag
+
+                    updated_rows += 1
+                    progress.progress(updated_rows / total)
+                    status.text(f"Processed {updated_rows} of {total} questions...")
+
+                ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+                out = os.path.join(os.path.dirname(p), f"3_{ts}.xlsx")
+                df.to_excel(out, index=False)
+
+                st.success("Step 3 complete!")
+                st.dataframe(df)
                 with open(out, "rb") as f:
                     st.download_button(
-                        label="Download 3.xlsx",
-                        data=f,
+                        "⬇️ Download 3.xlsx",
+                        f,
                         file_name=os.path.basename(out),
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     )
+
             except Exception as e:
                 st.error(f"Error: {e}")
+
 
 # Step 4
 else:
