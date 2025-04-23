@@ -22,6 +22,30 @@ st.set_page_config(
 )
 
 # ─── Global CSS ─────────────────────────────────────────────────────────
+st.markdown("""
+    <style>
+        button[kind="primary"] {
+            background-color: #9C27B0 !important;
+            color: white !important;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            padding: 0.6em 1.4em;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        button[kind="primary"]:hover {
+            background-color: #BA68C8 !important;
+            transform: scale(1.03);
+            cursor: pointer;
+        }
+
+        /* Optional: Update secondary buttons too */
+        button[kind="secondary"] {
+            background-color: #6A1B9A !important;
+            color: white !important;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
 st.markdown("""
     <style>
