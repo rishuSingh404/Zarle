@@ -3,3 +3,4 @@ pandas>=1.4
 openpyxl>=3.0
 openai==0.28.1
 tqdm>=4.64
+streamlit-option-menu
