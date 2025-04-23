@@ -11,7 +11,7 @@ from step3 import process_step3, build_prompt, parse_response_and_flag
 from step4 import process_step4
 
 # Load your API key from Streamlit secrets
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+openai.api_key = os.environ.get("OPENAI_API_KEY")
 
 # ─── Page Config ────────────────────────────────────────────────────────
 st.set_page_config(
