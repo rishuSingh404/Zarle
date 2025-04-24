@@ -267,3 +267,27 @@ elif selected == "Step 3":  # Step 4
             st.dataframe(df, use_container_width=True)
             with open(out, "rb") as f:
                 st.download_button("🏁 Download Final Workbook", f, file_name=os.path.basename(out))
+                
+# ─── Step 5: Export to Markdown ──────────────────────────────────────────
+else:
+    st.header("📝 Step 5: Export to Markdown")
+    x4 = st.file_uploader("Upload final Excel (from Step 4)", type="xlsx")
+    if st.button("Generate questions.md 📄"):
+        if not x4:
+            st.warning("Please upload the final .xlsx file.")
+        else:
+            path = _save_temp(x4, ".xlsx")
+            out_md = process_step5(path)
+            st.success("✅ Markdown generated!")
+            # Preview first 20 lines
+            with open(out_md, "r", encoding="utf-8") as f:
+                preview = "".join([next(f) for _ in range(20)])
+            st.code(preview, language="markdown")
+            with open(out_md, "rb") as f:
+                st.download_button(
+                    "⬇️ Download questions.md",
+                    f,
+                    file_name=os.path.basename(out_md),
+                    mime="text/markdown"
+                )
+
