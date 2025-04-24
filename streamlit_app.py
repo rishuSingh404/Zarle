@@ -9,6 +9,7 @@ from step1 import convert_md_to_excel
 from step2 import process_step2
 from step3 import process_step3, build_prompt, parse_response_and_flag
 from step4 import process_step4
+from step5 import process_step5
 
 # Load your API key from Streamlit secrets
 openai.api_key = os.environ.get("OPENAI_API_KEY")
