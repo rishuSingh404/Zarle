@@ -271,7 +271,7 @@ elif selected == "Step 4":  # Step 4
 # ─── Step 5: Export to Markdown ──────────────────────────────────────────
 else:
     st.header("📝 Step 5: Export to Markdown")
-    x4 = st.file_uploader("Upload final Excel (from Step 4)", type="xlsx")
+    x4 = st.file_uploader("Upload final Excel (from Step 4) after solving all the Flag issues", type="xlsx")
     if st.button("Generate questions.md 📄"):
         if not x4:
             st.warning("Please upload the final .xlsx file.")
