@@ -1,85 +1,105 @@
 # step5.py
+
 import pandas as pd
 import re
 import os
 from datetime import datetime
 
-def to_roman(num: int) -> str:
-    romans = ["I","II","III","IV","V","VI","VII","VIII","IX","X"]
-    return romans[num-1] if 1 <= num <= len(romans) else str(num)
+# ─── Inline TeXifier ────────────────────────────────────────────────────────
+def texify_inline(s: str) -> str:
+    s = re.sub(
+        r"(?<!\\)\b([A-Za-z0-9\)\]\}]+)\s*/\s*([A-Za-z0-9\(\[\{]+)\b",
+        r"\\frac{\1}{\2}", s
+    )
+    s = re.sub(r"sqrt\(\s*([^)]+?)\s*\)", r"\\sqrt{\1}", s)
+    s = re.sub(r"(\d+)\s*°", r"\1^\\circ", s)
+    s = re.sub(r"\bpi\b", r"\\pi", s, flags=re.IGNORECASE)
+    s = re.sub(r"(?<!\^)\^([A-Za-z0-9\(\[]+)(?!\})", r"^{\1}", s)
+    s = re.sub(r"(?<!_)_([A-Za-z0-9\(\[]+)(?!\})", r"_{\1}", s)
+    s = re.sub(r"\^\{\{([^}]+)\}\}", r"^{\1}", s)
+    s = re.sub(r"_\{\{([^}]+)\}\}", r"_{\1}", s)
+    return s.replace('${$', '{').replace('$}', '}')
 
+MATH_SNIPPET = re.compile(
+    r"(\\frac\{[^}]+\}\{[^}]+\}|\\sqrt\{[^}]+\}|\^\{[^}]+\}|_\{[^}]+\}|\\pi)"
+)
+
+def wrap_math_in_text(s: str) -> str:
+    t = texify_inline(s)
+    return MATH_SNIPPET.sub(lambda m: f"${m.group(0)}$", t)
+
+# ─── Roman Helper ──────────────────────────────────────────────────────────
+ROMAN = ["I","II","III","IV","V","VI","VII","VIII","IX","X"]
+def to_roman(n: int) -> str:
+    return ROMAN[n-1] if 1 <= n <= len(ROMAN) else str(n)
+
+# ─── Exporter Function ─────────────────────────────────────────────────────
 def process_step5(input_xlsx: str) -> str:
     """
-    Reads the final Excel, groups questions into difficulty sections,
-    and writes out a questions.md file. Returns the path to questions.md.
+    Reads the final Excel from Step 4, groups questions into difficulty levels,
+    marks up all math in $...$, and writes out a Markdown file.
+    Returns the path to the generated .md.
     """
     df = pd.read_excel(input_xlsx, engine="openpyxl")
     df.columns = df.columns.str.strip()
 
-    lines = []
     section = 0
-    prev_qno = None
+    prev_q = None
 
+    # build lines
+    lines = []
     for _, row in df.iterrows():
-        # parse question number
+        raw_qno = row.get("Question No", "")
         try:
-            qno = int(row.get("Question No", 0))
+            qno = int(raw_qno)
         except:
-            qno = row.get("Question No", "")
+            qno = None
 
-        # new section if it's the first row or Q resets
-        if prev_qno is None or (isinstance(qno, int) and isinstance(prev_qno, int) and qno <= prev_qno):
+        # new difficulty section when Q-numbers reset
+        if prev_q is None or (isinstance(qno,int) and isinstance(prev_q,int) and qno <= prev_q):
             section += 1
-            roman = to_roman(section)
-            lines.append(f"# Level of Difficulty {roman}")
-            lines.append("")  # blank line
-
-        prev_qno = qno
-
-        # grab fields
-        qtxt     = str(row.get("Question", "")).strip()
-        opts     = row.get("Options", "")
-        ans_raw  = row.get("Correct Answer", "")
-        expl     = str(row.get("Detailed Explanation", "")).strip()
-
-        # format answer
-        if pd.notna(ans_raw):
-            if isinstance(ans_raw, float) and ans_raw.is_integer():
-                ans = str(int(ans_raw))
-            else:
-                ans = str(ans_raw).strip()
-        else:
-            ans = ""
-
-        # build markdown
-        lines.append(f"## Question {qno}")
-        lines.append("")
-        lines.append(qtxt)
-        lines.append("")
-
-        if pd.notna(opts) and str(opts).strip():
-            parts = re.split(r';\s*|\r?\n', str(opts))
-            for part in parts:
-                part = part.strip()
-                if part:
-                    if not part.startswith("-"):
-                        part = f"- {part}"
-                    lines.append(part)
+            lines.append(f"# Level of Difficulty {to_roman(section)}")
             lines.append("")
 
-        lines.append(f"**Answer:** {ans}")
+        prev_q = qno
+
+        # Question header & text
+        lines.append(f"## Question {raw_qno}")
         lines.append("")
-        if expl:
+        lines.append(wrap_math_in_text(str(row.get("Question",""))))
+        lines.append("")
+
+        # Options
+        opts = str(row.get("Options","")).strip()
+        if opts.lower() not in ("nan","none",""):
+            for opt in re.split(r";\s*|\r?\n", opts):
+                o = opt.strip()
+                if not o:
+                    continue
+                if o[0] not in "-*":
+                    o = f"- {o}"
+                lines.append(wrap_math_in_text(o))
+            lines.append("")
+
+        # Answer
+        ans = str(row.get("Correct Answer","")).strip()
+        lines.append(f"**Answer:** {wrap_math_in_text(ans)}")
+        lines.append("")
+
+        # Detailed Explanation
+        expl = str(row.get("Detailed Explanation","")).strip()
+        if expl.lower() not in ("nan",""):
             lines.append("**Explanation:**")
             lines.append("")
-            for ex_line in expl.splitlines():
-                lines.append(ex_line.strip())
+            for l in expl.splitlines():
+                if l.strip():
+                    lines.append(wrap_math_in_text(l))
             lines.append("")
 
         lines.append("---")
         lines.append("")
 
-    # write out
+    # write to file
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     out_md = os.path.join(os.path.dirname(input_xlsx), f"questions_{ts}.md")
     with open(out_md, "w", encoding="utf-8") as f:
