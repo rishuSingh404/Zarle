@@ -136,8 +136,8 @@ with st.sidebar:
     )
     selected = option_menu(
         menu_title=None,
-        options=["Step 1", "Step 2", "Step 3", "Step 4"],
-        icons=["file-earmark-text", "layers-half", "robot", "brush"],
+        options=["Step 1","Step 2","Step 3","Step 4","Step 5"],
+        icons=["file-earmark-text","layers-half","robot","brush","file-earmark-code"],
         menu_icon="cast",
         default_index=0,
         orientation="vertical",
