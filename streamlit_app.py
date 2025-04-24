@@ -253,7 +253,7 @@ elif selected == "Step 3":
             with open(out, "rb") as f:
                 st.download_button("⬇️ Download 3.xlsx", f, file_name=os.path.basename(out))
 
-elif selected == "Step 3":  # Step 4
+elif selected == "Step 4":  # Step 4
     st.header("🧼 Step 4: Final Cleanup")
     x3 = st.file_uploader("Upload 3.xlsx", type="xlsx")
     if st.button("Finalize ✔️"):
