@@ -5,27 +5,20 @@ from datetime import datetime
 
 # ─── 1) Core TeXifier: catches a/b, sqrt(...), 45°, pi, ^, _ ────────────────
 def texify_inline(s: str) -> str:
-    # fractions: a/b → \frac{a}{b}
     s = re.sub(
         r"(?<!\\)\b([A-Za-z0-9\)\]\}]+)\s*/\s*([A-Za-z0-9\(\[\{]+)\b",
         r"\\frac{\1}{\2}", s
     )
-    # sqrt(x) → \sqrt{x}
     s = re.sub(r"sqrt\(\s*([^)]+?)\s*\)", r"\\sqrt{\1}", s)
-    # degrees: 45° → 45^\circ
     s = re.sub(r"(\d+)\s*°", r"\1^\\circ", s)
-    # pi → \pi
     s = re.sub(r"\bpi\b", r"\\pi", s, flags=re.IGNORECASE)
-    # superscripts: x^2 → x^{2}
     s = re.sub(r"(?<!\^)\^([A-Za-z0-9\(\[]+)(?!\})", r"^{\1}", s)
-    # collapse accidental double‐braces
     s = re.sub(r"\^\{\{([^}]+)\}\}", r"^{\1}", s)
-    # subscripts: a_1 → a_{1}
     s = re.sub(r"(?<!_)_([A-Za-z0-9\(\[]+)(?!\})", r"_{\1}", s)
     s = re.sub(r"_\{\{([^}]+)\}\}", r"_{\1}", s)
     return s
 
-# regex to detect any LaTeX fragment we just produced
+# regex for any LaTeX snippet we just produced
 MATH_SNIPPET = re.compile(
     r"(\\frac\{[^}]+\}\{[^}]+\}"
     r"|\\sqrt\{[^}]+\}"
@@ -36,39 +29,64 @@ MATH_SNIPPET = re.compile(
 
 def wrap_math_in_text(s: str) -> str:
     t = texify_inline(s)
-    # wrap each math snippet in $…$
     return MATH_SNIPPET.sub(lambda m: f"${m.group(0)}$", t)
 
-# ─── 2) Excel → Markdown exporter ────────────────────────────────────────
+# ─── 2) Roman numerals for headings ──────────────────────────────────────
+ROMAN = ["I","II","III","IV","V","VI","VII","VIII","IX","X",
+         "XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX"]
+def to_roman(n: int) -> str:
+    return ROMAN[n-1] if 1 <= n <= len(ROMAN) else str(n)
+
+# ─── 3) Exporter: final Excel → questions.md ────────────────────────────
 def process_step5(input_xlsx: str) -> str:
     """
-    Reads the final Excel from Step 4 and writes out questions.md
-    with sections: Question, Correct Answer, Solution.
-    Returns the path to the generated .md file.
+    Reads the final Excel from Step 4, then writes out a Markdown file
+    grouping by difficulty and formatting:
+      ## Question N
+      (question text)
+      ### Correct Answer
+      (answer)
+      #### Solution
+      (detailed explanation)
+    Returns the path to the generated .md.
     """
     df = pd.read_excel(input_xlsx, engine="openpyxl")
     df.columns = df.columns.str.strip()
 
     lines = []
+    section = 0
+    prev_qno = None
+
     for _, row in df.iterrows():
-        qno  = str(row.get("Question No", "")).strip()
-        qtxt = str(row.get("Question", "")).strip()
-        ans  = str(row.get("Correct Answer", "")).strip()
-        expl = str(row.get("Detailed Explanation", "")).strip()
+        raw = str(row.get("Question No", "")).strip()
+        try:
+            qno = int(raw)
+        except:
+            qno = None
+
+        # new level when Q resets to 1 (or first row)
+        if prev_qno is None or qno == 1:
+            section += 1
+            lines.append(f"# Level of Difficulty {to_roman(section)}")
+            lines.append("")
+
+        prev_qno = qno
 
         # Question
-        lines.append(f"## Question {qno}")
+        lines.append(f"## Question {raw}")
         lines.append("")
-        lines.append(wrap_math_in_text(qtxt))
+        lines.append(wrap_math_in_text(str(row.get("Question", "")).strip()))
         lines.append("")
 
         # Correct Answer
+        answer = str(row.get("Correct Answer", "")).strip()
         lines.append("### Correct Answer")
-        lines.append(wrap_math_in_text(ans))
+        lines.append(wrap_math_in_text(answer))
         lines.append("")
 
         # Solution / Explanation
-        if expl.lower() not in ("","nan","none"):
+        expl = str(row.get("Detailed Explanation", "")).strip()
+        if expl and expl.lower() not in ("nan", "none"):
             lines.append("#### Solution")
             lines.append("")
             for ln in expl.splitlines():
@@ -76,7 +94,7 @@ def process_step5(input_xlsx: str) -> str:
                 if ln:
                     lines.append(wrap_math_in_text(ln))
                     lines.append("")
-        # separator
+
         lines.append("---")
         lines.append("")
 
@@ -89,9 +107,7 @@ def process_step5(input_xlsx: str) -> str:
     return out_md
 
 
-# If you ever want to run this as a script:
+# Optional standalone execution
 if __name__ == "__main__":
-    path_to_excel = "final.xlsx"  # adjust if needed
-    print("Generating Markdown…")
-    md_path = process_step5(path_to_excel)
-    print(f"→ {md_path} written.")
+    md_out = process_step5("final.xlsx")
+    print(f"→ {md_out} generated.")
