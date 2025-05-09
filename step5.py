@@ -1,14 +1,14 @@
 import pandas as pd
 import re
-from openpyxl import load_workbook
+import os
+from datetime import datetime
 
 # ─── 1) Core TeXifier: catches a/b, sqrt(...), 45°, pi, ^, _ ────────────────
 def texify_inline(s: str) -> str:
-    # fractions: numerator/denominator → \frac{num}{den}
+    # fractions: a/b → \frac{a}{b}
     s = re.sub(
         r"(?<!\\)\b([A-Za-z0-9\)\]\}]+)\s*/\s*([A-Za-z0-9\(\[\{]+)\b",
-        r"\\frac{\1}{\2}",
-        s
+        r"\\frac{\1}{\2}", s
     )
     # sqrt(x) → \sqrt{x}
     s = re.sub(r"sqrt\(\s*([^)]+?)\s*\)", r"\\sqrt{\1}", s)
@@ -36,40 +36,62 @@ MATH_SNIPPET = re.compile(
 
 def wrap_math_in_text(s: str) -> str:
     t = texify_inline(s)
-    # wrap each match in $...$
+    # wrap each math snippet in $…$
     return MATH_SNIPPET.sub(lambda m: f"${m.group(0)}$", t)
 
 # ─── 2) Excel → Markdown exporter ────────────────────────────────────────
-def excel_to_markdown(xlsx: str, md: str):
-    df = pd.read_excel(xlsx, engine="openpyxl")
+def process_step5(input_xlsx: str) -> str:
+    """
+    Reads the final Excel from Step 4 and writes out questions.md
+    with sections: Question, Correct Answer, Solution.
+    Returns the path to the generated .md file.
+    """
+    df = pd.read_excel(input_xlsx, engine="openpyxl")
     df.columns = df.columns.str.strip()
 
-    with open(md, "w", encoding="utf-8") as out:
-        for _, row in df.iterrows():
-            qno   = str(row.get("Question No","")).strip()
-            qtxt  = str(row.get("Question","")).strip()
-            ans   = str(row.get("Correct Answer","")).strip()
-            expl  = str(row.get("Detailed Explanation","")).strip()
+    lines = []
+    for _, row in df.iterrows():
+        qno  = str(row.get("Question No", "")).strip()
+        qtxt = str(row.get("Question", "")).strip()
+        ans  = str(row.get("Correct Answer", "")).strip()
+        expl = str(row.get("Detailed Explanation", "")).strip()
 
-            # ─── Step 1: Question heading ───────────────────────────
-            out.write(f"## Question {qno}\n\n")
-            out.write(wrap_math_in_text(qtxt) + "\n\n")
+        # Question
+        lines.append(f"## Question {qno}")
+        lines.append("")
+        lines.append(wrap_math_in_text(qtxt))
+        lines.append("")
 
-            # ─── Step 2: Correct Answer block ───────────────────────
-            out.write("### Correct Answer\n")
-            out.write(wrap_math_in_text(ans) + "\n\n")
+        # Correct Answer
+        lines.append("### Correct Answer")
+        lines.append(wrap_math_in_text(ans))
+        lines.append("")
 
-            # ─── Step 5: Solution / Explanation block ───────────────  ← UPDATED
-            if expl and expl.lower() not in ("nan","none",""):
-                out.write("#### Solution\n\n")
-                for line in expl.splitlines():
-                    line = line.strip()
-                    if line:
-                        out.write(wrap_math_in_text(line) + "\n\n")
+        # Solution / Explanation
+        if expl.lower() not in ("","nan","none"):
+            lines.append("#### Solution")
+            lines.append("")
+            for ln in expl.splitlines():
+                ln = ln.strip()
+                if ln:
+                    lines.append(wrap_math_in_text(ln))
+                    lines.append("")
+        # separator
+        lines.append("---")
+        lines.append("")
 
+    # write out
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    out_md = os.path.join(os.path.dirname(input_xlsx), f"questions_{ts}.md")
+    with open(out_md, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines))
+
+    return out_md
+
+
+# If you ever want to run this as a script:
 if __name__ == "__main__":
-    excel_to_markdown(
-        r"C:\Users\Rishu Singh\Favorites\Downloads\final_20250424_082407.xlsx",
-        "questions.md"
-    )
-    print("→ questions.md generated in the new Q/A/Solution format.")
+    path_to_excel = "final.xlsx"  # adjust if needed
+    print("Generating Markdown…")
+    md_path = process_step5(path_to_excel)
+    print(f"→ {md_path} written.")
