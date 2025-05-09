@@ -88,7 +88,7 @@ def process_step5(input_xlsx: str) -> str:
         # Correct Answer
         ans = str(row.get("Correct Answer", "")).strip()
         lines.append("### Correct Answer")
-        lines.append(wrap_math_in_text(ans))
+        lines.appendwrap_math_in_text(str(row.get("Answer", "")).strip())
         lines.append("")
 
         # Solution / Detailed Explanation
