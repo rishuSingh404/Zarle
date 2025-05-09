@@ -1,108 +1,75 @@
-# step5.py
-
 import pandas as pd
 import re
-import os
-from datetime import datetime
+from openpyxl import load_workbook
 
-# ─── Inline TeXifier ────────────────────────────────────────────────────────
+# ─── 1) Core TeXifier: catches a/b, sqrt(...), 45°, pi, ^, _ ────────────────
 def texify_inline(s: str) -> str:
+    # fractions: numerator/denominator → \frac{num}{den}
     s = re.sub(
         r"(?<!\\)\b([A-Za-z0-9\)\]\}]+)\s*/\s*([A-Za-z0-9\(\[\{]+)\b",
-        r"\\frac{\1}{\2}", s
+        r"\\frac{\1}{\2}",
+        s
     )
+    # sqrt(x) → \sqrt{x}
     s = re.sub(r"sqrt\(\s*([^)]+?)\s*\)", r"\\sqrt{\1}", s)
+    # degrees: 45° → 45^\circ
     s = re.sub(r"(\d+)\s*°", r"\1^\\circ", s)
+    # pi → \pi
     s = re.sub(r"\bpi\b", r"\\pi", s, flags=re.IGNORECASE)
+    # superscripts: x^2 → x^{2}
     s = re.sub(r"(?<!\^)\^([A-Za-z0-9\(\[]+)(?!\})", r"^{\1}", s)
-    s = re.sub(r"(?<!_)_([A-Za-z0-9\(\[]+)(?!\})", r"_{\1}", s)
+    # collapse accidental double‐braces
     s = re.sub(r"\^\{\{([^}]+)\}\}", r"^{\1}", s)
+    # subscripts: a_1 → a_{1}
+    s = re.sub(r"(?<!_)_([A-Za-z0-9\(\[]+)(?!\})", r"_{\1}", s)
     s = re.sub(r"_\{\{([^}]+)\}\}", r"_{\1}", s)
-    return s.replace('${$', '{').replace('$}', '}')
+    return s
 
+# regex to detect any LaTeX fragment we just produced
 MATH_SNIPPET = re.compile(
-    r"(\\frac\{[^}]+\}\{[^}]+\}|\\sqrt\{[^}]+\}|\^\{[^}]+\}|_\{[^}]+\}|\\pi)"
+    r"(\\frac\{[^}]+\}\{[^}]+\}"
+    r"|\\sqrt\{[^}]+\}"
+    r"|\^\{[^}]+\}"
+    r"|_\{[^}]+\}"
+    r"|\\pi)"
 )
 
 def wrap_math_in_text(s: str) -> str:
     t = texify_inline(s)
+    # wrap each match in $...$
     return MATH_SNIPPET.sub(lambda m: f"${m.group(0)}$", t)
 
-# ─── Roman Helper ──────────────────────────────────────────────────────────
-ROMAN = ["I","II","III","IV","V","VI","VII","VIII","IX","X"]
-def to_roman(n: int) -> str:
-    return ROMAN[n-1] if 1 <= n <= len(ROMAN) else str(n)
-
-# ─── Exporter Function ─────────────────────────────────────────────────────
-def process_step5(input_xlsx: str) -> str:
-    """
-    Reads the final Excel from Step 4, groups questions into difficulty levels,
-    marks up all math in $...$, and writes out a Markdown file.
-    Returns the path to the generated .md.
-    """
-    df = pd.read_excel(input_xlsx, engine="openpyxl")
+# ─── 2) Excel → Markdown exporter ────────────────────────────────────────
+def excel_to_markdown(xlsx: str, md: str):
+    df = pd.read_excel(xlsx, engine="openpyxl")
     df.columns = df.columns.str.strip()
 
-    section = 0
-    prev_q = None
+    with open(md, "w", encoding="utf-8") as out:
+        for _, row in df.iterrows():
+            qno   = str(row.get("Question No","")).strip()
+            qtxt  = str(row.get("Question","")).strip()
+            ans   = str(row.get("Correct Answer","")).strip()
+            expl  = str(row.get("Detailed Explanation","")).strip()
 
-    # build lines
-    lines = []
-    for _, row in df.iterrows():
-        raw_qno = row.get("Question No", "")
-        try:
-            qno = int(raw_qno)
-        except:
-            qno = None
+            # ─── Step 1: Question heading ───────────────────────────
+            out.write(f"## Question {qno}\n\n")
+            out.write(wrap_math_in_text(qtxt) + "\n\n")
 
-        # new difficulty section when Q-numbers reset
-        if prev_q is None or (isinstance(qno,int) and isinstance(prev_q,int) and qno <= prev_q):
-            section += 1
-            lines.append(f"# Level of Difficulty {to_roman(section)}")
-            lines.append("")
+            # ─── Step 2: Correct Answer block ───────────────────────
+            out.write("### Correct Answer\n")
+            out.write(wrap_math_in_text(ans) + "\n\n")
 
-        prev_q = qno
+            # ─── Step 5: Solution / Explanation block ───────────────  ← UPDATED
+            if expl and expl.lower() not in ("nan","none",""):
+                out.write("#### Solution\n\n")
+                for line in expl.splitlines():
+                    line = line.strip()
+                    if line:
+                        out.write(wrap_math_in_text(line) + "\n\n")
 
-        # Question header & text
-        lines.append(f"## Question {raw_qno}")
-        lines.append("")
-        lines.append(wrap_math_in_text(str(row.get("Question",""))))
-        lines.append("")
-
-        # Options
-        opts = str(row.get("Options","")).strip()
-        if opts.lower() not in ("nan","none",""):
-            for opt in re.split(r";\s*|\r?\n", opts):
-                o = opt.strip()
-                if not o:
-                    continue
-                if o[0] not in "-*":
-                    o = f"- {o}"
-                lines.append(wrap_math_in_text(o))
-            lines.append("")
-
-        # Answer
-        ans = str(row.get("Correct Answer","")).strip()
-        lines.append(f"**Answer:** {wrap_math_in_text(ans)}")
-        lines.append("")
-
-        # Detailed Explanation
-        expl = str(row.get("Detailed Explanation","")).strip()
-        if expl.lower() not in ("nan",""):
-            lines.append("**Explanation:**")
-            lines.append("")
-            for l in expl.splitlines():
-                if l.strip():
-                    lines.append(wrap_math_in_text(l))
-            lines.append("")
-
-        lines.append("---")
-        lines.append("")
-
-    # write to file
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    out_md = os.path.join(os.path.dirname(input_xlsx), f"questions_{ts}.md")
-    with open(out_md, "w", encoding="utf-8") as f:
-        f.write("\n".join(lines))
-
-    return out_md
+if __name__ == "__main__":
+    excel_to_markdown(
+        r"C:\Users\Rishu Singh\Favorites\Downloads\final_20250424_082407.xlsx",
+        "questions.md"
+    )
+    print("→ questions.md generated in the new Q/A/Solution format.")
